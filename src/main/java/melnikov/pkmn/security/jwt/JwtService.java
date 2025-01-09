@@ -4,16 +4,14 @@ import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.util.List;
+import java.time.Instant;
+import java.util.Date;
 import java.util.Objects;
 
 
@@ -21,47 +19,47 @@ import java.util.Objects;
 @Component
 @RequiredArgsConstructor
 public class JwtService {
+
     private final UserDetailsService userDetailsService;
 
     @Value("${token.secret}")
     private String SECRET_KEY;
 
     @Value("${token.expiration}")
-    private long TOKEN_EXPIRATION_MINUTES;
-    private Algorithm algorithm;
+    private long TOKEN_EXPIRATION_MINUTE;
 
-    @PostConstruct
-    public void init() {
-        algorithm = Algorithm.HMAC512(SECRET_KEY);
-    }
-    public String createToken(String username, GrantedAuthority authority) {
+    public String createJwt(String username, GrantedAuthority authority) {
+        log.info("Creating JWT for user: {} with authority: {}", username, authority.getAuthority());
+
         return JWT.create()
                 .withIssuer("pkmn")
                 .withSubject(username)
-                .withClaim("authorities", List.of(authority.getAuthority()))
-                .withExpiresAt(LocalDateTime.now().plusMinutes(TOKEN_EXPIRATION_MINUTES).toInstant(ZoneOffset.UTC))
-                .sign(algorithm);
+                .withClaim("authority", authority.getAuthority())
+                .withExpiresAt(Date.from(Instant.now().plusSeconds(TOKEN_EXPIRATION_MINUTE * 60)))
+                .sign(Algorithm.HMAC512(SECRET_KEY));
     }
 
     public DecodedJWT verify(String jwt) {
         try {
             JWTVerifier verifier = JWT
-                    .require(algorithm)
+                    .require(Algorithm.HMAC512(SECRET_KEY))
                     .withIssuer("pkmn")
                     .build();
 
+            log.info("Verifying JWT: {}", jwt);
+
             DecodedJWT decodedJWT = verifier.verify(jwt);
 
+            log.info("Decoded JWT subject: {}", decodedJWT.getSubject());
+
             if (Objects.isNull(userDetailsService.loadUserByUsername(decodedJWT.getSubject()))) {
-                log.error("Пользователь не найден");
+                log.warn("User not found: {}", decodedJWT.getSubject());
                 return null;
             }
 
-            log.info("JWT истекает в {}", decodedJWT.getExpiresAt());
             return decodedJWT;
-        }
-        catch (JWTVerificationException e ) {
-            log.error("Ошибка верификации {}", e.getMessage());
+        } catch (JWTVerificationException e) {
+            log.error("JWT verification failed: {}", e.getMessage());
             return null;
         }
     }

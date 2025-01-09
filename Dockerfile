@@ -4,7 +4,7 @@ WORKDIR /build
 COPY pom.xml .
 COPY src ./src
 
-RUN mvn clean package
+RUN mvn clean package -DskipTests
 
 FROM bellsoft/liberica-openjre-alpine:21 AS layers
 

@@ -1,39 +1,63 @@
 package melnikov.pkmn.services.impls;
 import melnikov.pkmn.dao.StudentDao;
 import melnikov.pkmn.entities.StudentEntity;
-import melnikov.pkmn.models.Student;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import melnikov.pkmn.services.StudentService;
 import java.util.List;
-
+import melnikov.pkmn.clients.RestClient;
+import org.springframework.beans.factory.annotation.Autowired;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class StudentServiceImpl implements StudentService {
+    @Autowired
     private final StudentDao studentDao;
 
+    @Autowired
+    private RestClient restClient; // Внедрение RestClient
+
     @Override
-    public Student getStudentBySurNameAndFirstNameAndFamilyName(String surName, String firstName, String familyName) {
-        StudentEntity studentEntity = studentDao.getBySurNameAndFirstNameAndFamilyName(surName, firstName, familyName);
-        return Student.fromEntity(studentEntity);
+    public List<StudentEntity> getAllStudents() {
+        return studentDao.findAll();
     }
 
     @Override
-    public List<Student> getStudentsByGroup(String group) {
-        return studentDao.getByGroup(group).stream().map(Student::fromEntity).toList();
+    public StudentEntity getStudentById(UUID id) {
+        return studentDao.findById(id).orElse(null);
     }
 
     @Override
-    public List<Student> getAllStudents() {
-        return studentDao.getAll().stream().map(Student::fromEntity).toList();
-    }
-
-    @Override
-    public Student saveStudent(Student student) {
-        if (studentDao.studentExists(student)) {
-            throw new IllegalArgumentException("Студент уже есть в бд");
+    public StudentEntity saveStudent(StudentEntity student) {
+        if (studentDao.findByFullName(student.getFirstName(), student.getSurName(), student.getFatherName()).isPresent()) {
+            throw new RuntimeException("Student already exists.");
         }
-        return Student.fromEntity(studentDao.saveStudent(StudentEntity.toEntity(student)));
+        return studentDao.save(student);
     }
+
+    @Override
+    public StudentEntity updateStudent(UUID id, StudentEntity student) {
+        if (!studentDao.findById(id).isPresent()) {
+            throw new RuntimeException("Student not found.");
+        }
+        student.setId(id);
+        return studentDao.save(student);
+    }
+
+    @Override
+    public void deleteStudent(UUID id) {
+        studentDao.deleteById(id);
+    }
+
+    @Override
+    public List<StudentEntity> getStudentsByGroup(String group) {
+        return studentDao.findByGroup(group);
+    }
+
+    @Override
+    public StudentEntity getStudentByFullName(String firstName, String surName, String familyName) {
+        return studentDao.findByFullName(firstName, surName, familyName).orElse(null);
+    }
+
 }

@@ -1,11 +1,14 @@
 package melnikov.pkmn.services;
-import melnikov.pkmn.models.Student;
+import melnikov.pkmn.entities.StudentEntity;
 import java.util.List;
-
+import java.util.UUID;
 
 public interface StudentService {
-    Student getStudentBySurNameAndFirstNameAndFamilyName(String surName, String firstName, String familyName);
-    List<Student> getStudentsByGroup(String group);
-    List<Student> getAllStudents();
-    Student saveStudent(Student student);
+    List<StudentEntity> getAllStudents();
+    StudentEntity getStudentById(UUID id);
+    StudentEntity saveStudent(StudentEntity student);
+    StudentEntity updateStudent(UUID id, StudentEntity student);
+    void deleteStudent(UUID id);
+    List<StudentEntity> getStudentsByGroup(String group);
+    StudentEntity getStudentByFullName(String firstName, String surName, String familyName);
 }

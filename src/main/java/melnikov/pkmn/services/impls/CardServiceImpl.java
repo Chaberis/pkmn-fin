@@ -1,65 +1,75 @@
 package melnikov.pkmn.services.impls;
-import com.fasterxml.jackson.databind.JsonNode;
 import melnikov.pkmn.dao.CardDao;
 import melnikov.pkmn.entities.CardEntity;
-import melnikov.pkmn.models.Card;
-import melnikov.pkmn.models.Student;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 import melnikov.pkmn.services.CardService;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
+import melnikov.pkmn.clients.PokemonCardResponse;
+import melnikov.pkmn.clients.RestClient;
+import java.util.Objects;
 
 
 @Service
 @RequiredArgsConstructor
 public class CardServiceImpl implements CardService {
     private final CardDao cardDao;
-    private final RestTemplate restTemplate;
+    @Autowired
+    private RestClient restClient;
 
     @Override
-    public List<Card> getAllCards() {
-        return cardDao.getAll().stream().map(Card::fromEntity).toList();
+    public List<CardEntity> getAllCards() {
+        return cardDao.findAll();
     }
 
     @Override
-    public Card getCardByName(String name) {
-        return Card.fromEntity(cardDao.getByName(name));
+    public CardEntity getCardById(UUID id) {
+        return cardDao.findById(id).orElse(null);
     }
 
     @Override
-    public Card getCardByPokemonOwner(Student student) {
-        return Card.fromEntity(cardDao.getByPokemonOwnerId(student));
-    }
-
-    @Override
-    public Card getCardById(UUID id) {
-        return Card.fromEntity(cardDao.getById(id));
-    }
-
-    @Override
-    public Card saveCard(Card card) {
-        if (cardDao.cardExists(card)) {
-            throw new IllegalArgumentException("уже есть в базе данных");
+    public CardEntity saveCard(CardEntity card) {
+        // Валидация уникальности
+        if (!Objects.isNull(card.getId()) && cardDao.findById(card.getId()).isPresent()) {
+            throw new RuntimeException("Card with this ID already exists.");
         }
-        if (card.getPokemonOwner() == null) {
-            throw new IllegalArgumentException("нет владельца карты");
-        }
-        return Card.fromEntity(cardDao.saveCard(CardEntity.toEntity(card)));
+        return cardDao.save(card);
     }
 
     @Override
-    public String getPokemonImage(String name, int number) {
-        String url = "https://api.pokemontcg.io/v2/cards?q=name:\"" + name + "\" number:" + number;
-
-        ResponseEntity<JsonNode> response = restTemplate.getForEntity(url, JsonNode.class);
-
-        if (response.getBody() != null && response.getBody().has("data")) {
-            JsonNode data = response.getBody().get("data").get(0);
-            return data.path("images").path("large").asText();
+    public CardEntity updateCard(UUID id, CardEntity card) {
+        if (cardDao.findById(id).isEmpty()) {
+            throw new RuntimeException("Card not found.");
         }
-        return "нет покемона";
+        card.setId(id);
+        return cardDao.save(card);
+    }
+
+    @Override
+    public void deleteCard(UUID id) {
+        cardDao.deleteById(id);
+    }
+
+    @Override
+    public List<CardEntity> getCardsByOwner(String firstName, String surName, String familyName) {
+        return cardDao.findCardsByOwner(firstName, surName, familyName);
+    }
+
+    @Override
+    public Optional<CardEntity> getCardsByName(String name) {
+        return cardDao.findCardsByName(name);
+    }
+
+
+    @Override
+    public String getCardImageByName(String cardName) {
+        PokemonCardResponse response = restClient.getCardByName(cardName);
+        if (response != null && !response.getData().isEmpty()) {
+            return response.getData().get(0).getImages().getLarge(); // Получаем большое изображение карты
+        }
+        return null; // Если карта не найдена
     }
 }

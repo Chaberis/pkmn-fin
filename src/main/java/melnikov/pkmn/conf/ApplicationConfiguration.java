@@ -8,20 +8,21 @@ import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.web.client.RestTemplate;
 import javax.sql.DataSource;
 
+
 @Configuration
 public class ApplicationConfiguration {
     @Bean
-    public UserDetailsService jdbcUserDetailsService(DataSource dataSource) {
+    public RestTemplate restTemplate(){
+        return new RestTemplate();
+    }
+
+    @Bean
+    public UserDetailsService jdbcUserDetailsService(DataSource dataSource){
         return new JdbcUserDetailsManager(dataSource);
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
+    public PasswordEncoder passwordEncoder(){
         return new BCryptPasswordEncoder();
-    }
-
-    @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
     }
 }

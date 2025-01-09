@@ -1,59 +1,41 @@
 package melnikov.pkmn.dao;
 import melnikov.pkmn.entities.CardEntity;
-import melnikov.pkmn.entities.StudentEntity;
-import melnikov.pkmn.models.Card;
-import melnikov.pkmn.models.Student;
 import melnikov.pkmn.repositories.CardRepository;
-import melnikov.pkmn.repositories.StudentRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Optional;
 
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class CardDao {
-    private final CardRepository cardentityrepository;
-    private final StudentRepository studentEntityRepository;
+    @Autowired
+    private final CardRepository cardRepository;
 
-    @SneakyThrows
-    public List<CardEntity> getAll() {
-        return cardentityrepository.findAll();
+    public List<CardEntity> findAll() {
+        return cardRepository.findAll();
     }
 
-    @SneakyThrows
-    public CardEntity getByName(String name) {
-        return cardentityrepository.findByName(name).orElseThrow(
-                () -> new IllegalArgumentException("Not Found"));
+    public CardEntity save(CardEntity card) {
+        return cardRepository.save(card);
     }
 
-    @SneakyThrows
-    public CardEntity getByPokemonOwnerId(Student student) {
-        StudentEntity studentEntity = studentEntityRepository.findBySurNameAndFirstNameAndFamilyNameAndGroup(
-                student.getSurName(), student.getFirstName(), student.getFamilyName(), student.getGroup()).orElseThrow(
-                () -> new IllegalArgumentException("Not Found"));
-
-        UUID id = studentEntity.getId();
-        return cardentityrepository.findByPokemonOwnerId(id).orElseThrow(
-                () -> new IllegalArgumentException("Not Found"));
+    public void deleteById(UUID id) {
+        cardRepository.deleteById(id);
     }
 
-    @SneakyThrows
-    public CardEntity getById(UUID id) {
-        return cardentityrepository.findById(id).orElseThrow(
-                () -> new IllegalArgumentException("Not Found"));
+    public List<CardEntity> findCardsByOwner(String firstName, String surName, String familyName) {
+        return cardRepository.findByPokemonOwner(firstName, surName, familyName);
     }
 
-    @SneakyThrows
-    public CardEntity saveCard(CardEntity cardEntity) {
-        return cardentityrepository.save(cardEntity);
+    public Optional<CardEntity> findCardsByName(String name) {
+        return cardRepository.findByName(name);
     }
 
-    public boolean cardExists(Card card) {
-        return cardentityrepository.findByName(card.getName()).isPresent();
+    public Optional<CardEntity> findById(UUID id) {
+        return cardRepository.findById(id);
     }
 }

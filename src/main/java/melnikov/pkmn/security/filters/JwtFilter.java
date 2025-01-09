@@ -16,6 +16,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.Objects;
+import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Component
@@ -24,48 +26,58 @@ public class JwtFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        String jwt = request.getHeader("Authorization");
-        log.info("From request {}", jwt);
+        String jwtToken = extractJwtToken(request);
 
-        if (Objects.isNull(jwt) || !jwt.startsWith("Bearer")) {
-            if (!Objects.isNull(request.getCookies())) {
-                for (Cookie cookie : request.getCookies()) {
-                    if (cookie.getName().equals("jwt")) {
-                        jwt = new String(Base64.getDecoder().decode(cookie.getValue()));
-                        log.info("From cookie {}", jwt);
-                    }
-                }
-            }
-            if (Objects.isNull(jwt) || jwt.startsWith("Basic")) {
-                filterChain.doFilter(request, response);
-                return;
-            }
+        if (Objects.isNull(jwtToken)) {
+            filterChain.doFilter(request, response);
+            return;
         }
 
-        if (jwt.startsWith("Bearer")) {
-            jwt = jwt.substring(7);
-        }
+        DecodedJWT decodedJWT = jwtService.verify(jwtToken);
 
-        DecodedJWT decodedJWT = jwtService.verify(jwt);
         if (Objects.isNull(decodedJWT)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        var authoritiesClaim = decodedJWT.getClaim("authorities");
-        if (authoritiesClaim != null && !authoritiesClaim.isNull()) {
-            SecurityContextHolder.getContext().setAuthentication(
-                    new UsernamePasswordAuthenticationToken(
-                            decodedJWT.getSubject(),
-                            null,
-                            decodedJWT.getClaim("authorities").asList(SimpleGrantedAuthority.class)
-                    )
-            );
-        }
-        else {
-            SecurityContextHolder.getContext().setAuthentication(null);
+        setAuthentication(decodedJWT);
+        filterChain.doFilter(request, response);
+    }
+
+    private String extractJwtToken(HttpServletRequest request) {
+        String jwtToken = Optional.ofNullable(request.getHeader("Authorization"))
+                .filter(token -> token.startsWith("Bearer "))
+                .map(token -> token.substring(7))
+                .orElse(null);
+
+        if (!Objects.isNull(jwtToken)) {
+            log.info("JWT token from Authorization header: {}", jwtToken);
+            return jwtToken;
         }
 
-        filterChain.doFilter(request, response);
+        if (Objects.nonNull(request.getCookies())) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("jwt".equals(cookie.getName())) {
+                    jwtToken = new String(Base64.getDecoder().decode(cookie.getValue()));
+                    log.info("JWT token from cookies: {}", jwtToken);
+                    return jwtToken;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private void setAuthentication(DecodedJWT decodedJWT) {
+        String authority = decodedJWT.getClaim("authority").asString();
+        log.info("Token authority information: {}", authority);
+
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                decodedJWT.getSubject(),
+                null,
+                List.of(new SimpleGrantedAuthority(authority))
+        );
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }

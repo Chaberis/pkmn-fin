@@ -3,6 +3,7 @@ import melnikov.pkmn.security.filters.JwtFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -22,18 +23,23 @@ public class SecurityConfiguration {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity.authorizeHttpRequests(
-                customizer ->
-                        customizer
-                                .requestMatchers("/api/v1/cards/all").permitAll()
-                                .requestMatchers("/api/v1/cards/owner").permitAll()
-                                .requestMatchers("/api/v1/cards/name/{name}").permitAll()
-                                .requestMatchers("/auth/**").permitAll()
-                                .requestMatchers("/api/v1/cards").hasRole("ADMIN")
-                                .requestMatchers("/api/v1/students").hasRole("ADMIN")
-                                .requestMatchers("/error**").permitAll()
-                                .anyRequest().authenticated()
+                customizer -> customizer
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/v1/cards/**",
+                                "/api/v1/students/**",
+                                "/api/v1/cards/card/image")
+                        .permitAll()
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/v1/cards",
+                                "/api/v1/students")
+                        .hasRole("ADMIN")
+                        .requestMatchers("/auth/login", "/auth/register").permitAll()
+                        .requestMatchers("/auth/**").authenticated()
+                        .anyRequest().authenticated()
         );
-
+        httpSecurity.formLogin(form -> form.successForwardUrl("/auth/success"));
         httpSecurity.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         httpSecurity.csrf(AbstractHttpConfigurer::disable);
         httpSecurity.userDetailsService(jdbcUserDetailsManager);

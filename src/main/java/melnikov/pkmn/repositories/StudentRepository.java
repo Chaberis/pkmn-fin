@@ -9,8 +9,6 @@ import java.util.UUID;
 
 @Repository
 public interface StudentRepository extends JpaRepository<StudentEntity, UUID> {
-    Optional<StudentEntity> findBySurNameAndFirstNameAndFamilyName(String surName, String firstName, String familyName);
     List<StudentEntity> findByGroup(String group);
-    List<StudentEntity> findAll();
-    Optional<StudentEntity> findBySurNameAndFirstNameAndFamilyNameAndGroup(String surName, String firstName, String familyName, String group);
+    Optional<StudentEntity> findByFirstNameAndSurNameAndFamilyName(String firstName, String surName, String familyName);
 }

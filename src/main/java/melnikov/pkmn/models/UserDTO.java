@@ -3,8 +3,9 @@ import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import java.util.List;
+import static org.aspectj.weaver.tools.cache.SimpleCacheFactory.enabled;
 
-
+@Data
 @Getter
 @Setter
 @Builder
@@ -47,6 +48,6 @@ public class UserDTO implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return enabled;
     }
 }

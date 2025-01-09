@@ -1,71 +1,40 @@
 package melnikov.pkmn.dao;
-
 import melnikov.pkmn.entities.StudentEntity;
-import melnikov.pkmn.models.Student;
 import melnikov.pkmn.repositories.StudentRepository;
-
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import org.springframework.stereotype.Component;
-
 import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Optional;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
 public class StudentDao {
+    @Autowired
+    private final StudentRepository studentRepository;
 
-    private final StudentRepository studententityrepository;
-
-    /**
-     *  Возвращает StudentEntity по полному имени (фамилия, имя, отчество).
-     *  @param surName фамилия студента.
-     *  @param firstName имя студента.
-     *  @param familyName отчество студента.
-     *  @return StudentEntity найденный StudentEntity.
-     *  @throws IllegalArgumentException если StudentEntity не найден.
-     */
-    @SneakyThrows
-    public StudentEntity getBySurNameAndFirstNameAndFamilyName(String surName, String firstName, String familyName) {
-        return studententityrepository.findBySurNameAndFirstNameAndFamilyName(surName, firstName, familyName).orElseThrow(
-                () -> new IllegalArgumentException("Not Found"));
+    public List<StudentEntity> findAll() {
+        return studentRepository.findAll();
     }
 
-    /**
-     *  Возвращает список StudentEntity по группе.
-     *  @param group группа студентов.
-     *  @return List<StudentEntity> список StudentEntity.
-     */
-    @SneakyThrows
-    public List<StudentEntity> getByGroup(String group) {
-        return studententityrepository.findByGroup(group);
+    public StudentEntity save(StudentEntity student) {
+        return studentRepository.save(student);
     }
 
-    /**
-     *  Возвращает список всех StudentEntity.
-     *  @return List<StudentEntity> список всех StudentEntity.
-     */
-    @SneakyThrows
-    public List<StudentEntity> getAll(){
-        return studententityrepository.findAll();
+    public void deleteById(UUID id) {
+        studentRepository.deleteById(id);
     }
 
-
-    /**
-     *  Сохраняет StudentEntity.
-     *  @param studentEntity StudentEntity для сохранения.
-     *  @return StudentEntity сохраненный StudentEntity.
-     */
-    @SneakyThrows
-    public StudentEntity saveStudent(StudentEntity studentEntity) {
-        return studententityrepository.save(studentEntity);
+    public List<StudentEntity> findByGroup(String group) {
+        return studentRepository.findByGroup(group);
     }
 
-    /**
-     *  Проверяет, существует ли студент с указанными данными.
-     *  @param student Student для проверки.
-     *  @return boolean true если студент существует, false в противном случае.
-     */
-    public boolean studentExists(Student student) {
-        return studententityrepository.findBySurNameAndFirstNameAndFamilyNameAndGroup(student.getSurName(), student.getFirstName(), student.getFamilyName(), student.getGroup()).isPresent();
+    public Optional<StudentEntity> findByFullName(String firstName, String surName, String familyName) {
+        return studentRepository.findByFirstNameAndSurNameAndFamilyName(firstName, surName, familyName);
+    }
+
+    public Optional<StudentEntity> findById(UUID id) {
+        return studentRepository.findById(id);
     }
 }

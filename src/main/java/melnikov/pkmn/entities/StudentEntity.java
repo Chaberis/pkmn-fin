@@ -20,6 +20,7 @@ public class StudentEntity implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
     @Column(name="first_name")
@@ -28,8 +29,8 @@ public class StudentEntity implements Serializable {
     @Column(name="sur_name")
     private String surName;
 
-    @Column(name="family_name")
-    private String familyName;
+    @Column(name="FatherName")
+    private String FatherName;
 
     @Column(name="\"group\"")
     private String group;
@@ -42,7 +43,7 @@ public class StudentEntity implements Serializable {
                     .id(UUID.randomUUID())
                     .surName(student.getSurName())
                     .firstName(student.getFirstName())
-                    .familyName(student.getFamilyName())
+                    .FatherName(student.getFatherName())
                     .group(student.getGroup())
                     .build();
         }
